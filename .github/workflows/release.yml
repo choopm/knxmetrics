@@ -1,0 +1,113 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  earthly:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Put back the git branch into git and set build vars (Earthly uses it for tagging)
+      id: vars
+      run: |
+        branch=""
+        if [ -n "$GITHUB_HEAD_REF" ]; then
+          branch="$GITHUB_HEAD_REF"
+        else
+          branch="${GITHUB_REF##*/}"
+        fi
+        git checkout -b "$branch" || true
+        # Save branch and semver
+        echo "branch=$branch" >> $GITHUB_OUTPUT
+        semver=`echo $GITHUB_REF_NAME | sed 's/^v//;s/\//-/'`
+        echo "semver=$semver" >> $GITHUB_OUTPUT
+
+    - name: Check for pull request (do not push the image if PR)
+      id: ispull
+      run: |
+        # Add --push to earthly later, when this is not a pull request.
+        if [ ${{ github.event_name }} != "pull_request" ]; then
+              echo "pusharg=--push" >> $GITHUB_OUTPUT
+        else
+              echo "pusharg=" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Show debug vars
+      run: |
+        echo "Release tag name : ${{ github.event.release.tag_name }}"
+        echo "Branch           : ${{ steps.vars.outputs.branch }}"
+        echo "GITHUB_REF_NAME  : $GITHUB_REF_NAME"
+        echo "Semver           : ${{ steps.vars.outputs.semver }}"
+        echo "Earthly push arg : ${{ steps.ispull.outputs.pusharg }}"
+
+    - name: Set up QEMU for multi-arch
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        install: true
+
+    - name: Login to GitHub Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install earthly
+      uses: earthly/actions-setup@v1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        version: latest
+
+    - name: Earthly Build and Push
+      run: |
+        earthly \
+          --secret github_token=choopm:${{ secrets.GO_MODULES_TOKEN }} \
+          --output ${{ steps.ispull.outputs.pusharg }} \
+          +release \
+          --tag=${{ steps.vars.outputs.semver }}
+
+    - name: Archive build artifacts if any
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        if-no-files-found: ignore
+        path: build/
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        body_path: RELEASE.md
+        files: |
+          CHANGELOG.md
+          build/knxmetrics-linux-amd64
+          build/knxmetrics-linux-arm64
+          build/knxmetrics-linux-arm
+          build/knxmetrics-darwin-amd64
+          build/knxmetrics-darwin-arm64
+          build/knxmetrics-windows-amd64.exe
+          build/knxmetrics-windows-arm64.exe
+          build/knxmetrics.yaml
+          build/LICENSE
+          build/NOTICE
+          build/LICENSES.CSV

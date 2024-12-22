@@ -1,0 +1,19 @@
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/choopm/knxmetrics-devcontainer
+    init: true
+    volumes:
+      - ../:/workspace:delegated
+    working_dir: /workspace
+    command: sleep infinity
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  prometheus:
+    image: prom/prometheus
+    network_mode: service:workspace
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml

@@ -1,0 +1,94 @@
+log:
+  format: json # json, text, color
+  level: trace # trace, debug, info, warn, error
+  output: stdout # stdout, stderr, <filename>
+  timeFormat: "2006-01-02T15:04:05Z07:00"
+
+knxrpc:
+  host: 192.168.11.14
+  port: 8080
+  auth:
+    enabled: true
+    header: Authorization
+    scheme: Bearer
+    secretKey: CHANGEME
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  path: /metrics
+  logRequests: true
+  auth:
+    enabled: true
+    header: Authorization
+    scheme: Bearer
+    secretKey: CHANGEME
+
+mappings:
+# weather
+- metricName: knx_rain_status
+  metricDescription: Whether it is currently raining or not (raining=1, dry=0)
+  metricType: 1005
+  knxGroupAddress: 0/6/4
+- metricName: knx_day_night
+  metricDescription: Indicates day and night using brightness (day=1, night=0)
+  metricType: 1001
+  knxGroupAddress: 0/6/5
+- metricName: knx_brightness
+  metricDescription: Brightness in Lux
+  metricType: 9004
+  knxGroupAddress: 0/6/6
+- metricName: knx_brightness_east
+  metricDescription: Brightness in east direction in Lux
+  metricType: 9004
+  knxGroupAddress: 0/6/7
+- metricName: knx_brightness_south
+  metricDescription: Brightness in south direction in Lux
+  metricType: 9004
+  knxGroupAddress: 0/6/8
+- metricName: knx_brightness_west
+  metricDescription: Brightness in west direction in Lux
+  metricType: 9004
+  knxGroupAddress: 0/6/9
+- metricName: knx_wind
+  metricDescription: Current wind velocity in m/s
+  metricType: 9005
+  knxGroupAddress: 0/6/40
+- metricName: knx_wind_alarm
+  metricDescription: Wind velocity triggered a threshold (alarm=1, clear=0)
+  metricType: 1001
+  knxGroupAddress: 0/6/41
+- metricName: knx_temperature
+  metricDescription: Current temperature in Celsius
+  metricType: 9001
+  knxGroupAddress: 0/6/60
+# schlafzimmer
+- knxGroupAddress: 2/6/20
+  metricName: knx_room_presence
+  metricDescription: Whether someone is inside a room
+  metricType: 1001
+  metricAttributes:
+  - name: room
+    value: Schlafzimmer
+- knxGroupAddress: 2/6/60
+  metricName: knx_room_temperature
+  metricDescription: Temperature of a room
+  metricType: 9001
+  metricAttributes:
+  - name: room
+    value: Schlafzimmer
+# wohnzimmer
+- knxGroupAddress: 3/6/20
+  metricName: knx_room_presence
+  metricDescription: Whether someone is inside a room
+  metricType: 1001
+  metricAttributes:
+  - name: room
+    value: Wohnzimmer
+- knxGroupAddress: 3/6/60
+  metricName: knx_room_temperature
+  metricDescription: Temperature of a room
+  metricType: 9001
+  metricAttributes:
+  - name: room
+    value: Wohnzimmer
