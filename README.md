@@ -17,6 +17,10 @@ You can find an example config at [knxmetrics.yaml](cmd/knxmetrics/knxmetrics.ya
 By default it exposes your configured KNX values from the YAML-file
 as prometheus metrics scrapable at <http://localhost:8080/metrics>.
 
+You can visualize these metrics using prometheus+grafana to look like this:
+
+![Grafana](grafana.png)
+
 You can choose to add metric attributes to group metrics.
 
 It currently supports mapping these KNX DPTs to float64 gauges:
